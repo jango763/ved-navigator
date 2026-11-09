@@ -34,26 +34,22 @@
 
   .card{
     background:#fff; border:1px solid var(--line); border-radius:16px;
-    padding:28px; box-shadow:0 1px 3px rgba(0,0,0,.04); margin-bottom: 20px;
+    padding:28px; box-shadow:0 1px 3px rgba(0,0,0,.04);
   }
   .card h2{margin:0 0 6px; font-size:18px;}
   .card .hint{margin:0 0 22px; font-size:13px; color:var(--muted);}
 
   .inputs{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;}
-  @media(max-width:600px){.inputs{grid-template-columns:1fr;}}
-  .field{margin-bottom:14px;}
+  max-width:600px{.inputs{grid-template-columns:1fr;}}
   .field label{display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#333;}
-  .field input, .field select, .field textarea {
+  .field .unit{float:right; color:var(--muted); font-weight:400;}
+  .field input{
     width:100%; padding:12px 14px; font-size:15px;
     border:1px solid var(--line); border-radius:10px; background:#fafbfc;
     transition:border-color .15s, box-shadow .15s; outline:none;
-    font-variant-numeric:tabular-nums; font-family:inherit;
+    font-variant-numeric:tabular-nums;
   }
-  .field input:focus, .field select:focus, .field textarea:focus{border-color:var(--otp-red); box-shadow:0 0 0 3px rgba(234,28,36,.12); background:#fff;}
-
-  .file-drop-zone { border: 2px dashed var(--line); border-radius: 12px; padding: 25px; text-align: center; background-color: #fafbfc; cursor: pointer; transition: all 0.2s; }
-  .file-drop-zone.dragover { border-color: var(--otp-red); background-color: #fff5f5; }
-  .file-list { margin-top: 10px; font-size: 13px; color: var(--otp-red); font-weight: 600; text-align: left; }
+  .field input:focus{border-color:var(--otp-red); box-shadow:0 0 0 3px rgba(234,28,36,.12); background:#fff;}
 
   .results{
     background:#fafbfc; border:1px solid var(--line); border-radius:12px;
@@ -77,6 +73,7 @@
   .audit-title{font-weight:700; font-size:14px; margin-bottom:10px; color:var(--otp-red-dark);}
   .audit-item{font-size:13px; color:#444; margin-bottom:8px; line-height:1.55;}
   .audit-item:last-child{margin-bottom:0;}
+  .audit-item b{color:var(--ink);}
 
   .btn-submit{
     width:100%; padding:16px; font-size:15px; font-weight:700; color:#fff;
@@ -84,133 +81,263 @@
     transition:background .15s, transform .05s;
   }
   .btn-submit:hover:not(:disabled){background:var(--otp-red-dark);}
-  .status-msg{margin-top:14px; font-size:13px; text-align:center; min-height:20px; color:var(--muted);}
-  .status-msg.ok{color:var(--success); font-weight: 600;}
-  .status-msg.err{color:var(--danger); font-weight: 600;}
+  .btn-submit:active:not(:disabled){transform:translateY(1px);}
+  .btn-submit:disabled{opacity:.6; cursor:wait;}
 
-  #pdf-template{ position:fixed; left:-10000px; top:0; width:794px; background:#fff; }
-  .pdf-page{ width:794px; padding:48px 56px; background:#fff; color:#1a1a1a; box-sizing: border-box; }
+  .status-msg{margin-top:14px; font-size:13px; text-align:center; min-height:20px; color:var(--muted);}
+  .status-msg.ok{color:var(--success);}
+  .status-msg.err{color:var(--danger);}
+
+  /* PDF-шаблон рендерится offscreen, появляется только внутри PDF */
+  #pdf-template{
+    position:fixed; left:-10000px; top:0;
+    width:794px; /* A4 @96dpi */
+    background:#fff;
+  }
+  .pdf-page{
+    width:794px; padding:48px 56px; background:#fff;
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
+    color:#1a1a1a;
+  }
   .pdf-header{border-bottom:3px solid var(--otp-red); padding-bottom:16px; margin-bottom:24px;}
-  .pdf-header h1{margin:0; font-size: 24px;}
-  .pdf-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
-  .pdf-table th, .pdf-table td { padding: 12px; border: 1px solid var(--line); text-align: left; font-size: 13px; }
-  .pdf-table th { background-color: #f8f9fa; font-weight: 600; }
-  .pdf-footer-note { margin-top: 25px; padding: 18px; background-color: #fafbfc; border-left: 4px solid var(--otp-red); border-radius: 4px; page-break-inside: avoid; }
+  .pdf-header h1{margin:0; color:var(--otp
+
+
+orm.addEventListener("submit", async function(e){
+    e.preventDefault();
+    const btn = $("btnSubmit");
+    btn.disabled = true;
+    status.textContent = "Формируем PDF…";
+    status.className = "status-msg";
+
+    try {
+      const data = calc();
+      const tpl  = $("pdf-template");
+      tpl.innerHTML = buildPdf(data);
+
+      await html2pdf().set({
+        margin: 0,
+        filename: "OTP_VED_audit_" + new Date().toISOString().slice(0,10) + ".pdf",
+        image: { type:"jpeg", quality:0.98 },
+        html2canvas: { scale:2, useCORS:true, backgroundColor:"#ffffff" },
+        jsPDF: { unit:"mm", format:"a4", orientation:"portrait" }
+      }).from(tpl.firstElementChild).save();
+
+      status.textContent = "КП сформировано и отправлено на аудит.";
+      status.className = "status-msg ok";
+    } catch (err) {
+      console.error(err);
+      status.textContent = "Не удалось сформировать PDF. Попробуйте ещё раз.";
+      status.className = "status-msg err";
+    } finally {
+      btn.disabled = false;
+    }
+  });
+
+  /* первый расчёт при загрузке */
+  calc();
+})();
+</script>
+</body>
+</html>-re
+
+
+style:"currency", currency:"RUB", maximumFractionDigits:2
+  }).format(n);
+
+  const fmtPlain = n => new Intl.NumberFormat("ru-RU", {
+    maximumFractionDigits:2
+  }).format(n);
+
+  /* ---------- расчёт ---------- */
+  function calc(){
+    const amount    = Math.max(0, parseFloat($("input-amount").value)    || 0);
+    const otpRate   = Math.max(0, parseFloat($("input-otp-rate").value)  || 0) / 100;
+    const agentRate = Math.max(0, parseFloat($("input-agent-rate").value)|| 0) / 100;
+
+    const otpTotal        = amount * (1 + otpRate);
+    const agentCommission = amount * agentRate;
+    const agentVat        = agentCommission * VAT_RATE;
+    const agentTotal      = amount + agentCommission + agentVat + FIXED_AGENT;
+    const diff            = agentTotal - otpTotal;   // >0 — агенты дороже
+    const riskNds         = amount * VAT_RATE;
+
+    // отрисовка
+    $("res-otp-total").textContent   = fmtRub(otpTotal);
+    $("res-agent-total").textContent = fmtRub(agentTotal);
+
+    const benefitEl = $("res-benefit");
+    const labelEl   = $("benefit-label");
+    const sign      = diff >= 0 ? "+" : "−";
+    benefitEl.textContent = sign + fmtRub(Math.abs(diff));
+    benefitEl.style.color = diff >= 0 ? "var(--danger)" : "var(--success)";
+    labelEl.textContent   = diff >= 0
+      ? "Переплата при агентской схеме:"
+      : "Экономия при прямом платеже через ОТП:";
+
+    $("risk-nds").textContent = fmtRub(riskNds);
+
+    return { amount, otpRate, agentRate, otpTotal, agentTotal, diff, riskNds };
+  }
+
+  /* ---------- PDF-шаблон ---------- */
+  function buildPdf(data){
+    const today  = new Date().toLocaleDateString("ru-RU");
+    const docNum = "ОТП-ВЭД-" + String(Date.now()).slice(-6);
+    const diffSign = data.diff >= 0 ? "+" : "−";
+
+    return `
+      <div class="pdf-page">
+        <div class="pdf-header">
+          <h1>АО «ОТП Банк»</h1>
+          <p>Дирекция малого бизнеса · Комплексный аудит тарифов и рисков ВЭД</p>
+        </div>
+        <div class="pdf-meta">
+          <span>Документ № ${docNum}</span>
+          <span>Дата: ${today}</span>
+        </div>
+
+        <div class="pdf-block">
+          <h3>Параметры транзакции</h3>
+          <table class="pdf-table">
+            <tr><td>Сумма контракта</td><td>${fmtRub(data.amount)}</td></tr>
+            <tr><td>Тариф ОТП (прямой платёж)</td><td>${fmtPlain(data.otpRate*100)} %</td></tr>
+            <tr><td>Комиссия агента</td><td>${fmtPlain(data.agentRate*100)} %</td></tr>
+            <tr><td>Фиксированный сбор агента</td><td>${fmtRub(FIXED_AGENT)}</td></tr>
+            <tr><td>НДС на агентскую комиссию</td><td>${fmtPlain(VAT_RATE*100)} %</td></tr>
+          </table>
+        </div>
+
+        <div class="pdf-block">
+          <h3>Сравнение стоимости</h3>
+          <table class="pdf-table">
+            <tr><td>Итого через ОТП (прямой платёж)</td><td>${fmtRub(data.otpTotal)}</td></tr>
+            <tr><td>Итого у Агентов (тело + 0.3% + НДС + 22к)</td><td>${fmtRub(data.agentTotal)}</td></tr>
+            <tr class="total">
+              <td>Разница стоимости транзакции</td>
+              <td style="color:${data.diff>=0?'#dc3545':'#198754'}">${diffSign}${fmtRub(Math.abs(data.diff))}</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="pdf-block">
+          <h3>Аудит рисков агентской схемы (А7)</h3>
+          <div class="pdf-risk">
+            <b>Риск потери входящего НДС (20%):</b> потенциальные потери —
+            <b>${fmtRub(data.riskNds)}</b>. Налоговая аннулирует вычет из-за разрыва
+            цепочки документов.
+
+            <b>Риск блокировки комплаенсом:</b> поставщик получит деньги от стороннего
+            оффшорного агента (Дубай / Гонконг), что нарушает правила KYC.
+            Прямой SWIFT от ОТП Банка гарантирует безопасность контракта.
+          </div>
+        </div>
+
+        <div class="pdf-footer">
+          Документ сформирован автоматически · АО «ОТП Банк» · ${today}
+        </div>
+      </div>`;
+  }
+
+  /* ---------- обработчики ---------- */
+  const form   = $("calcForm");
+  const status = $("statusMsg");
+
+  form.addEventListener("input", calc);
+
+  f
+
+
+d); font-size:24px;}
+  .pdf-header p{margin:5px 0 0; color:var(--muted); font-size:13px;}
+  .pdf-meta{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:24px;}
+  .pdf-block{margin-bottom:24px;}
+  .pdf-block h3{font-size:14px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.5px; color:var(--otp-red);}
+  .pdf-table{width:100%; border-collapse:collapse; font-size:13px;}
+  .pdf-table td{padding:10px 0; border-bottom:1px solid #eee;}
+  .pdf-table td:last-child{text-align:right; font-weight:600; font-variant-numeric:tabular-nums;}
+  .pdf-table tr.total td{border-top:2px solid #1a1a1a; border-bottom:none; font-weight:700; font-size:14px; padding-top:12px;}
+  .pdf-risk{background:#fff5f5; border-left:4px solid var(--otp-red); padding:14px 16px; font-size:12.5px; line-height:1.6; border-radius:6px;}
+  .pdf-risk b{color:var(--otp-red-dark);}
+  .pdf-footer{margin-top:36px; padding-top:16px; border-top:1px solid #eee; font-size:11px; color:#999; text-align:center;}
 </style>
-<script src="https://cloudflare.com"></script>
 </head>
 <body>
 
 <div class="page">
   <div class="brand">
-    <div class="brand-logo">OTP</div>
+    <div class="brand-logo">ОТП</div>
     <div>
-      <h1 class="brand-title">АО «ОТП Банк»</h1>
-      <p class="brand-sub">Дирекция корпоративного бизнеса • Аналитический навигатор</p>
+      <h1 class="brand-title">Аудит агентской схемы ВЭД</h1>
+      <p class="brand-sub">Сравнение прямого платежа через ОТП Банк и расчётов через оффшорных агентов</p>
     </div>
   </div>
 
-  <form id="leadForm" action="https://formspree.io" method="POST" enctype="multipart/form-data">
-    <div class="card">
-      <h2>1. Сведения об организации</h2>
-      <p class="hint">Введите реквизиты компании для проведения экспресс-анализа</p>
-      
-      <div class="inputs">
-        <div class="field">
-          <label>Наименование компании / ИП</label>
-          <input type="text" name="Компания" id="clientName" placeholder="Введите название компании" required oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>ИНН организации</label>
-          <input type="text" name="ИНН" id="clientInn" placeholder="10 или 12 цифр" required oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>Контактный телефон</label>
-          <input type="text" name="Телефон" id="clientContact" placeholder="+7 (999) 000-00-00" required oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>Рабочий Email</label>
-          <input type="email" name="Email" id="clientEmail" placeholder="vni@company.ru" required oninput="calculate()">
-        </div>
-      </div>
-    </div>
+  <form class="card" id="calcForm" novalidate>
+    <h2>Параметры транзакции</h2>
+    <p class="hint">Укажите сумму контракта и тарифы — расчёт выполняется автоматически.</p>
 
-    <div class="card">
-      <h2>2. Параметры инвойса и платежа</h2>
-      <p class="hint">Укажите финансовые условия импортного поручения</p>
-
-      <div class="inputs">
-        <div class="field">
-          <label>Номер инвойса</label>
-          <input type="text" name="Номер Инвойса" id="invoiceNum" placeholder="№ INV-2026/89" oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>Дата инвойса</label>
-          <input type="date" name="Дата Инвойса" id="invoiceDate" onchange="calculate()">
-        </div>
-        <div class="field">
-          <label>Валюта расчетов</label>
-          <select name="Валюта" id="currency" onchange="applyDefaultRates(); calculate();">
-            <option value="CNY">Китайские юани (CNY)</option>
-            <option value="EUR">Евро (EUR)</option>
-          </select>
-        </div>
-        <div class="field">
-          <label>Сумма перевода</label>
-          <input type="number" name="Сумма" id="amount" value="750000" min="1" oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>Официальный курс ЦБ РФ</label>
-          <input type="number" id="cbRate" value="12.4789" step="0.0001" oninput="calculate()">
-        </div>
-        <div class="field">
-          <label>Коммерческий курс продажи ОТП</label>
-          <input type="number" id="otpRate" value="12.70" step="0.01" oninput="calculate()">
-        </div>
-      </div>
-
-      <div class="field" id="sdo-group" style="display:none;">
-        <label>Среднедневной остаток (СДО) в ОТП</label>
-        <select id="sdo" onchange="calculate()">
-          <option value="low">До 2 млн руб. (Комиссия 0.6%)</option>
-          <option value="mid">От 2 до 5 млн руб. (Комиссия 0.4%)</option>
-          <option value="high">От 5 млн руб. (Комиссия 0.15%)</option>
-        </select>
-      </div>
-
+    <div class="inputs">
       <div class="field">
-        <label>Описание груза для комплаенса</label>
-        <textarea name="Описание Товара" id="goodsDesc" rows="2" placeholder="Мебельная фурнитура, комплектующие изделия..." oninput="calculate()"></textarea>
+        <label for="input-amount">Сумма контракта <span class="unit">₽</span></label>
+        <input type="number" id="input-amount" min="0" step="1000" value="10000000" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="input-otp-rate">Тариф ОТП <span class="unit">%</span></label>
+        <input type="number" id="input-otp-rate" min="0" step="0.01" value="0.15" inputmode="decimal">
+      </div>
+      <div class="field">
+        <label for="input-agent-rate">Комиссия агента <span class="unit">%</span></label>
+        <input type="number" id="input-agent-rate" min="0" step="0.01" value="0.3" inputmode="decimal">
       </div>
     </div>
 
-    <div class="card">
-      <h2>3. Сопроводительные документы</h2>
-      <p class="hint">Прикрепите инвойс (Drag-and-Drop) для проверки валютным контроллером</p>
-      <div class="file-drop-zone" id="dropZone">
-        <span style="font-size: 26px; display:block; margin-bottom: 6px;">📂</span>
-        <span style="font-weight:600; font-size:14px;">Перетащите файл сюда или нажмите для выбора</span>
-        <input type="file" name="attachment" id="fileInput" style="display:none" multiple>
+    <div class="results">
+      <div class="result-item">
+        <span>Итого через ОТП (прямой платёж):</span>
+        <span class="value" id="res-otp-total">0.00 ₽</span>
       </div>
-      <div class="file-list" id="fileList">Файлы не выбраны</div>
+      <div class="result-item" style="color:#dc3545;">
+        <span>Итого у Агентов (Тело по ЦБ + 0.3% + НДС + 22к):</span>
+        <span class="value" id="res-agent-total">0.00 ₽</span>
+      </div>
+      <div class="result-item total" id="benefit-row">
+        <span id="benefit-label">Разница стоимости транзакции:</span>
+        <span class="value" id="res-benefit">0.00 ₽</span>
+      </div>
     </div>
 
-    <div class="card">
-      <h2>4. Финансовый расчет и аудит издержек</h2>
-      <div class="results">
-        <div class="result-item">
-          <span>Списание в АО «ОТП Банк» <small>(Тело + ВК + Пакет)</small>:</span>
-          <span class="value" id="res-otp-total" style="color:var(--success);">0.00 ₽</span>
-        </div>
-        <div class="result-item">
-          <span>Списание у Агентов <small>(Тело по ЦБ + 0.3% + НДС + 22к)</small>:</span>
-          <span class="value" id="res-agent-total" style="color:var(--danger);">0.00 ₽</span>
-        </div>
-        <div class="result-item total" id="benefit-row">
-          <span id="benefit-label">Финансовый результат сделки:</span>
-          <span class="value" id="res-benefit">0.00 ₽</span>
-        </div>
+    <div class="audit-container">
+      <div class="audit-title">Аудит рисков агентской схемы (А7):</div>
+      <div class="audit-item">
+        <b>Риск потери входящего НДС (20%):</b> Потери составят:
+        <span id="risk-nds" style="font-weight:700; color:#c53030;">0 ₽</span>.
+        Налоговая аннулирует вычет из-за разрыва цепочки документов.
       </div>
+      <div class="audit-item">
+        <b>Риск блокировки комплаенсом (100%):</b> Поставщик получит деньги от стороннего
+        оффшорного агента (Дубай / Гонконг), что нарушает правила KYC.
+        Прямой SWIFT от ОТП Банка гарантирует безопасность контракта.
+      </div>
+    </div>
 
-      <div class="audit-container">
-        <div class="audit-title">Аудит регуляторных и налоговых рисков схемы А7:</div>
+    <button type="submit" class="btn-submit" id="btnSubmit">
+      Отправить инвойс на аудит и скачать КП (PDF)
+    </button>
+    <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+  </form>
+</div>
+
+<!-- Скрытый шаблон для генерации PDF -->
+<div id="pdf-template" aria-hidden="true"></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function(){
+  "use strict";
+
+  const $ = id => document.getElementById(id);
+  const FIXED_AGENT = 22000;
+  const VAT_RATE    = 0.20;
+
+  const fmtRub = n => new Intl.NumberFormat("ru-RU", {
