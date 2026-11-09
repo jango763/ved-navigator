@@ -5,339 +5,115 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>АО «ОТП Банк» — Аудит агентской схемы ВЭД</title>
 <style>
-  :root{
-    --otp-red:#ea1c24;
-    --otp-red-dark:#c4141b;
-    --ink:#1a1a1a;
-    --muted:#6c757d;
-    --line:#e6e8eb;
-    --bg:#f5f6f8;
-    --danger:#dc3545;
-    --success:#198754;
-  }
+  :root{--otp-green:#198754;--otp-green-dark:#116239;--ink:#1a1a1a;--muted:#6c757d;--line:#e6e8eb;--bg:#f5f6f8;--danger:#dc3545;}
   *{box-sizing:border-box;}
-  body{
-    margin:0; padding:32px 16px 64px;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    background:var(--bg); color:var(--ink); line-height:1.5;
-  }
-  .page{max-width:820px; margin:0 auto;}
-  .brand{display:flex; align-items:center; gap:14px; margin-bottom:24px;}
-  .brand-logo{
-    width:44px; height:44px; border-radius:10px;
-    background:var(--otp-red); color:#fff; font-weight:800; font-size:18px;
-    display:flex; align-items:center; justify-content:center;
-    letter-spacing:-.5px;
-  }
-  .brand-title{font-size:20px; font-weight:700; margin:0;}
-  .brand-sub{font-size:13px; color:var(--muted); margin:2px 0 0;}
-
-  .card{
-    background:#fff; border:1px solid var(--line); border-radius:16px;
-    padding:28px; box-shadow:0 1px 3px rgba(0,0,0,.04);
-  }
-  .card h2{margin:0 0 6px; font-size:18px;}
-  .card .hint{margin:0 0 22px; font-size:13px; color:var(--muted);}
-
-  .inputs{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:24px;}
-  max-width:600px{.inputs{grid-template-columns:1fr;}}
-  .field label{display:block; font-size:13px; font-weight:600; margin-bottom:6px; color:#333;}
-  .field .unit{float:right; color:var(--muted); font-weight:400;}
-  .field input{
-    width:100%; padding:12px 14px; font-size:15px;
-    border:1px solid var(--line); border-radius:10px; background:#fafbfc;
-    transition:border-color .15s, box-shadow .15s; outline:none;
-    font-variant-numeric:tabular-nums;
-  }
-  .field input:focus{border-color:var(--otp-red); box-shadow:0 0 0 3px rgba(234,28,36,.12); background:#fff;}
-
-  .results{
-    background:#fafbfc; border:1px solid var(--line); border-radius:12px;
-    padding:8px 20px; margin-bottom:22px;
-  }
-  .result-item{
-    display:flex; justify-content:space-between; align-items:baseline;
-    padding:14px 0; border-bottom:1px solid var(--line); font-size:14px;
-  }
+  body{margin:0;padding:22px 12px 50px;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.4;}
+  .page{max-width:760px;margin:0 auto;}
+  .brand{display:flex;align-items:center;gap:12px;margin-bottom:20px;}
+  .brand-logo{width:44px;height:44px;border-radius:10px;background:var(--otp-green);color:#fff;font-weight:800;font-size:16px;display:flex;align-items:center;justify-content:center;}
+  .brand-title{font-size:18px;font-weight:700;margin:0;}
+  .brand-sub{font-size:12px;color:var(--muted);margin:2px 0 0;}
+  .card{background:#fff;border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:0 1px 3px rgba(0,0,0,.03);margin-bottom:16px;}
+  .card h2{margin:0 0 4px;font-size:16px;font-weight:700;}
+  .card .hint{margin:0 0 16px;font-size:12px;color:var(--muted);}
+  .inputs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:10px;}
+  @media(max-width:550px){.inputs{grid-template-columns:1fr;}}
+  .field{margin-bottom:10px;}
+  .field label{display:block;font-size:12px;font-weight:600;margin-bottom:5px;color:#333;}
+  .field input,.field select,.field textarea{width:100%;padding:10px 12px;font-size:14px;border:1px solid var(--line);border-radius:8px;background:#fafbfc;outline:none;font-family:inherit;}
+  .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--otp-green);box-shadow:0 0 0 3px rgba(25,135,84,.12);background:#fff;}
+  .file-drop-zone{border:2px dashed var(--line);border-radius:10px;padding:20px;text-align:center;background:#fafbfc;cursor:pointer;transition:all .15s;}
+  .file-drop-zone.dragover{border-color:var(--otp-green);background:#f4fbf7;}
+  .file-list{margin-top:8px;font-size:12px;color:var(--otp-green);font-weight:600;}
+  .results{background:#fafbfc;border:1px solid var(--line);border-radius:10px;padding:6px 16px;margin-bottom:16px;}
+  .result-item{display:flex;justify-content:space-between;align-items:baseline;padding:10px 0;border-bottom:1px solid var(--line);font-size:13px;}
   .result-item:last-child{border-bottom:none;}
-  .result-item .value{font-weight:700; font-variant-numeric:tabular-nums; font-size:15px;}
-  .result-item.total{
-    border-top:2px solid var(--line); margin-top:4px;
-  }
-  .result-item.total span:first-child{font-weight:700;}
-
-  .audit-container{
-    background:#fff8f8; border:1px solid #ffd9db; border-left:4px solid var(--otp-red);
-    border-radius:10px; padding:16px 18px; margin-bottom:24px;
-  }
-  .audit-title{font-weight:700; font-size:14px; margin-bottom:10px; color:var(--otp-red-dark);}
-  .audit-item{font-size:13px; color:#444; margin-bottom:8px; line-height:1.55;}
+  .result-item .value{font-weight:700;font-size:14px;}
+  .result-item.total{border-top:2px solid var(--line);margin-top:2px;}
+  .audit-container{background:#fff8f8;border:1px solid #ffd9db;border-left:4px solid var(--danger);border-radius:8px;padding:12px 14px;margin-bottom:20px;}
+  .audit-title{font-weight:700;font-size:13px;margin-bottom:6px;color:var(--danger);}
+  .audit-item{font-size:12px;color:#444;margin-bottom:6px;line-height:1.4;}
   .audit-item:last-child{margin-bottom:0;}
-  .audit-item b{color:var(--ink);}
-
-  .btn-submit{
-    width:100%; padding:16px; font-size:15px; font-weight:700; color:#fff;
-    background:var(--otp-red); border:none; border-radius:12px; cursor:pointer;
-    transition:background .15s, transform .05s;
-  }
-  .btn-submit:hover:not(:disabled){background:var(--otp-red-dark);}
-  .btn-submit:active:not(:disabled){transform:translateY(1px);}
-  .btn-submit:disabled{opacity:.6; cursor:wait;}
-
-  .status-msg{margin-top:14px; font-size:13px; text-align:center; min-height:20px; color:var(--muted);}
-  .status-msg.ok{color:var(--success);}
-  .status-msg.err{color:var(--danger);}
-
-  /* PDF-шаблон рендерится offscreen, появляется только внутри PDF */
-  #pdf-template{
-    position:fixed; left:-10000px; top:0;
-    width:794px; /* A4 @96dpi */
-    background:#fff;
-  }
-  .pdf-page{
-    width:794px; padding:48px 56px; background:#fff;
-    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif;
-    color:#1a1a1a;
-  }
-  .pdf-header{border-bottom:3px solid var(--otp-red); padding-bottom:16px; margin-bottom:24px;}
-  .pdf-header h1{margin:0; color:var(--otp
-
-
-orm.addEventListener("submit", async function(e){
-    e.preventDefault();
-    const btn = $("btnSubmit");
-    btn.disabled = true;
-    status.textContent = "Формируем PDF…";
-    status.className = "status-msg";
-
-    try {
-      const data = calc();
-      const tpl  = $("pdf-template");
-      tpl.innerHTML = buildPdf(data);
-
-      await html2pdf().set({
-        margin: 0,
-        filename: "OTP_VED_audit_" + new Date().toISOString().slice(0,10) + ".pdf",
-        image: { type:"jpeg", quality:0.98 },
-        html2canvas: { scale:2, useCORS:true, backgroundColor:"#ffffff" },
-        jsPDF: { unit:"mm", format:"a4", orientation:"portrait" }
-      }).from(tpl.firstElementChild).save();
-
-      status.textContent = "КП сформировано и отправлено на аудит.";
-      status.className = "status-msg ok";
-    } catch (err) {
-      console.error(err);
-      status.textContent = "Не удалось сформировать PDF. Попробуйте ещё раз.";
-      status.className = "status-msg err";
-    } finally {
-      btn.disabled = false;
-    }
-  });
-
-  /* первый расчёт при загрузке */
-  calc();
-})();
-</script>
-</body>
-</html>-re
-
-
-style:"currency", currency:"RUB", maximumFractionDigits:2
-  }).format(n);
-
-  const fmtPlain = n => new Intl.NumberFormat("ru-RU", {
-    maximumFractionDigits:2
-  }).format(n);
-
-  /* ---------- расчёт ---------- */
-  function calc(){
-    const amount    = Math.max(0, parseFloat($("input-amount").value)    || 0);
-    const otpRate   = Math.max(0, parseFloat($("input-otp-rate").value)  || 0) / 100;
-    const agentRate = Math.max(0, parseFloat($("input-agent-rate").value)|| 0) / 100;
-
-    const otpTotal        = amount * (1 + otpRate);
-    const agentCommission = amount * agentRate;
-    const agentVat        = agentCommission * VAT_RATE;
-    const agentTotal      = amount + agentCommission + agentVat + FIXED_AGENT;
-    const diff            = agentTotal - otpTotal;   // >0 — агенты дороже
-    const riskNds         = amount * VAT_RATE;
-
-    // отрисовка
-    $("res-otp-total").textContent   = fmtRub(otpTotal);
-    $("res-agent-total").textContent = fmtRub(agentTotal);
-
-    const benefitEl = $("res-benefit");
-    const labelEl   = $("benefit-label");
-    const sign      = diff >= 0 ? "+" : "−";
-    benefitEl.textContent = sign + fmtRub(Math.abs(diff));
-    benefitEl.style.color = diff >= 0 ? "var(--danger)" : "var(--success)";
-    labelEl.textContent   = diff >= 0
-      ? "Переплата при агентской схеме:"
-      : "Экономия при прямом платеже через ОТП:";
-
-    $("risk-nds").textContent = fmtRub(riskNds);
-
-    return { amount, otpRate, agentRate, otpTotal, agentTotal, diff, riskNds };
-  }
-
-  /* ---------- PDF-шаблон ---------- */
-  function buildPdf(data){
-    const today  = new Date().toLocaleDateString("ru-RU");
-    const docNum = "ОТП-ВЭД-" + String(Date.now()).slice(-6);
-    const diffSign = data.diff >= 0 ? "+" : "−";
-
-    return `
-      <div class="pdf-page">
-        <div class="pdf-header">
-          <h1>АО «ОТП Банк»</h1>
-          <p>Дирекция малого бизнеса · Комплексный аудит тарифов и рисков ВЭД</p>
-        </div>
-        <div class="pdf-meta">
-          <span>Документ № ${docNum}</span>
-          <span>Дата: ${today}</span>
-        </div>
-
-        <div class="pdf-block">
-          <h3>Параметры транзакции</h3>
-          <table class="pdf-table">
-            <tr><td>Сумма контракта</td><td>${fmtRub(data.amount)}</td></tr>
-            <tr><td>Тариф ОТП (прямой платёж)</td><td>${fmtPlain(data.otpRate*100)} %</td></tr>
-            <tr><td>Комиссия агента</td><td>${fmtPlain(data.agentRate*100)} %</td></tr>
-            <tr><td>Фиксированный сбор агента</td><td>${fmtRub(FIXED_AGENT)}</td></tr>
-            <tr><td>НДС на агентскую комиссию</td><td>${fmtPlain(VAT_RATE*100)} %</td></tr>
-          </table>
-        </div>
-
-        <div class="pdf-block">
-          <h3>Сравнение стоимости</h3>
-          <table class="pdf-table">
-            <tr><td>Итого через ОТП (прямой платёж)</td><td>${fmtRub(data.otpTotal)}</td></tr>
-            <tr><td>Итого у Агентов (тело + 0.3% + НДС + 22к)</td><td>${fmtRub(data.agentTotal)}</td></tr>
-            <tr class="total">
-              <td>Разница стоимости транзакции</td>
-              <td style="color:${data.diff>=0?'#dc3545':'#198754'}">${diffSign}${fmtRub(Math.abs(data.diff))}</td>
-            </tr>
-          </table>
-        </div>
-
-        <div class="pdf-block">
-          <h3>Аудит рисков агентской схемы (А7)</h3>
-          <div class="pdf-risk">
-            <b>Риск потери входящего НДС (20%):</b> потенциальные потери —
-            <b>${fmtRub(data.riskNds)}</b>. Налоговая аннулирует вычет из-за разрыва
-            цепочки документов.
-
-            <b>Риск блокировки комплаенсом:</b> поставщик получит деньги от стороннего
-            оффшорного агента (Дубай / Гонконг), что нарушает правила KYC.
-            Прямой SWIFT от ОТП Банка гарантирует безопасность контракта.
-          </div>
-        </div>
-
-        <div class="pdf-footer">
-          Документ сформирован автоматически · АО «ОТП Банк» · ${today}
-        </div>
-      </div>`;
-  }
-
-  /* ---------- обработчики ---------- */
-  const form   = $("calcForm");
-  const status = $("statusMsg");
-
-  form.addEventListener("input", calc);
-
-  f
-
-
-d); font-size:24px;}
-  .pdf-header p{margin:5px 0 0; color:var(--muted); font-size:13px;}
-  .pdf-meta{display:flex; justify-content:space-between; font-size:12px; color:var(--muted); margin-bottom:24px;}
-  .pdf-block{margin-bottom:24px;}
-  .pdf-block h3{font-size:14px; margin:0 0 10px; text-transform:uppercase; letter-spacing:.5px; color:var(--otp-red);}
-  .pdf-table{width:100%; border-collapse:collapse; font-size:13px;}
-  .pdf-table td{padding:10px 0; border-bottom:1px solid #eee;}
-  .pdf-table td:last-child{text-align:right; font-weight:600; font-variant-numeric:tabular-nums;}
-  .pdf-table tr.total td{border-top:2px solid #1a1a1a; border-bottom:none; font-weight:700; font-size:14px; padding-top:12px;}
-  .pdf-risk{background:#fff5f5; border-left:4px solid var(--otp-red); padding:14px 16px; font-size:12.5px; line-height:1.6; border-radius:6px;}
-  .pdf-risk b{color:var(--otp-red-dark);}
-  .pdf-footer{margin-top:36px; padding-top:16px; border-top:1px solid #eee; font-size:11px; color:#999; text-align:center;}
+  .btn-submit{width:100%;padding:14px;font-size:14px;font-weight:700;color:#fff;background:var(--otp-green);border:none;border-radius:10px;cursor:pointer;transition:background .15s;}
+  .btn-submit:hover:not(:disabled){background:var(--otp-green-dark);}
+  .btn-submit:disabled{opacity:.6;cursor:wait;}
+  .status-msg{margin-top:10px;font-size:12px;text-align:center;min-height:18px;}
+  #pdf-template{position:fixed;left:-10000px;top:0;width:700px;background:#fff;}
+  .pdf-page{width:700px;padding:35px;background:#fff;color:#1a1a1a;font-size:12px;}
+  .pdf-header{border-bottom:3px solid var(--otp-green);padding-bottom:10px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;}
+  .pdf-table{width:100%;border-collapse:collapse;margin:15px 0;}
+  .pdf-table th,.pdf-table td{padding:10px;border:1px solid var(--line);text-align:left;font-size:12px;}
+  .pdf-table th{background:#f8f9fa;font-weight:600;}
 </style>
+<!-- ПОДКЛЮЧАЕМ БИБЛИОТЕКИ ГЕНЕРАЦИИ PDF -->
+<script src="https://cloudflare.com"></script>
+<script src="https://cloudflare.com"></script>
+<script src="https://cloudflare.com"></script>
 </head>
 <body>
-
 <div class="page">
   <div class="brand">
     <div class="brand-logo">ОТП</div>
     <div>
-      <h1 class="brand-title">Аудит агентской схемы ВЭД</h1>
-      <p class="brand-sub">Сравнение прямого платежа через ОТП Банк и расчётов через оффшорных агентов</p>
+      <h1 class="brand-title">АО «ОТП Банк»</h1>
+      <p class="brand-sub">Дирекция корпоративного бизнеса • Северо-Западный регион</p>
     </div>
   </div>
-
-  <form class="card" id="calcForm" novalidate>
-    <h2>Параметры транзакции</h2>
-    <p class="hint">Укажите сумму контракта и тарифы — расчёт выполняется автоматически.</p>
-
-    <div class="inputs">
-      <div class="field">
-        <label for="input-amount">Сумма контракта <span class="unit">₽</span></label>
-        <input type="number" id="input-amount" min="0" step="1000" value="10000000" inputmode="decimal">
-      </div>
-      <div class="field">
-        <label for="input-otp-rate">Тариф ОТП <span class="unit">%</span></label>
-        <input type="number" id="input-otp-rate" min="0" step="0.01" value="0.15" inputmode="decimal">
-      </div>
-      <div class="field">
-        <label for="input-agent-rate">Комиссия агента <span class="unit">%</span></label>
-        <input type="number" id="input-agent-rate" min="0" step="0.01" value="0.3" inputmode="decimal">
+  <form id="leadForm" action="https://formspree.io" method="POST" enctype="multipart/form-data">
+    <div class="card">
+      <h2>1. Сведения об организации</h2>
+      <p class="hint">Заполните реквизиты вашей компании для формирования документов</p>
+      <div class="inputs">
+        <div class="field"><label>Наименование компании / ИП</label><input type="text" name="Компания" id="clientName" placeholder="ООО БалтЛаминат" required oninput="calculate()"></div>
+        <div class="field"><label>ИНН организации</label><input type="text" name="ИНН" id="clientInn" placeholder="10 или 12 цифр" required oninput="calculate()"></div>
+        <div class="field"><label>Контактный телефон</label><input type="text" name="Телефон" id="clientContact" placeholder="+7 (999) 000-00-00" required oninput="calculate()"></div>
+        <div class="field"><label>Рабочий Email</label><input type="email" name="Email" id="clientEmail" placeholder="vni@company.ru" required oninput="calculate()"></div>
       </div>
     </div>
-
-    <div class="results">
-      <div class="result-item">
-        <span>Итого через ОТП (прямой платёж):</span>
-        <span class="value" id="res-otp-total">0.00 ₽</span>
+    <div class="card">
+      <h2>2. Параметры инвойса и платежа</h2>
+      <p class="hint">Внесите финансовые параметры импортного поручения</p>
+      <div class="inputs">
+        <div class="field"><label>Номер инвойса</label><input type="text" name="Номер Инвойса" id="invoiceNum" placeholder="№ INV-2026/89" oninput="calculate()"></div>
+        <div class="field"><label>Дата документа</label><input type="date" name="Дата Инвойса" id="invoiceDate" onchange="calculate()"></div>
+        <div class="field"><label>Валюта расчетов</label><select name="Валюта" id="currency" onchange="applyDefaultRates(); calculate();"><option value="CNY">Китайские юани (CNY)</option><option value="EUR">Евро (EUR)</option></select></div>
+        <div class="field"><label>Сумма перевода</label><input type="number" name="Сумма" id="amount" value="750000" min="1" oninput="calculate()"></div>
+        <div class="field"><label>Официальный курс ЦБ РФ</label><input type="number" id="cbRate" value="12.4789" step="0.0001" oninput="calculate()"></div>
+        <div class="field"><label>Курс продажи ОТП</label><input type="number" id="otpRate" value="12.70" step="0.01" oninput="calculate()"></div>
       </div>
-      <div class="result-item" style="color:#dc3545;">
-        <span>Итого у Агентов (Тело по ЦБ + 0.3% + НДС + 22к):</span>
-        <span class="value" id="res-agent-total">0.00 ₽</span>
-      </div>
-      <div class="result-item total" id="benefit-row">
-        <span id="benefit-label">Разница стоимости транзакции:</span>
-        <span class="value" id="res-benefit">0.00 ₽</span>
-      </div>
+      <div class="field" id="sdo-group" style="display:none;"><label>Среднедневной остаток (СДО) на счетах ОТП</label><select id="sdo" onchange="calculate()"><option value="low">До 2 млн руб. (Комиссия 0.6%)</option><option value="mid">От 2 до 5 млн руб. (Комиссия 0.4%)</option><option value="high">От 5 млн руб. (Комиссия 0.15%)</option></select></div>
+      <div class="field"><label>Предмет контракта / Описание груза</label><textarea name="Описание Товара" id="goodsDesc" rows="2" placeholder="Мебельная фурнитура, комплектующие изделия..." oninput="calculate()"></textarea></div>
     </div>
-
-    <div class="audit-container">
-      <div class="audit-title">Аудит рисков агентской схемы (А7):</div>
-      <div class="audit-item">
-        <b>Риск потери входящего НДС (20%):</b> Потери составят:
-        <span id="risk-nds" style="font-weight:700; color:#c53030;">0 ₽</span>.
-        Налоговая аннулирует вычет из-за разрыва цепочки документов.
-      </div>
-      <div class="audit-item">
-        <b>Риск блокировки комплаенсом (100%):</b> Поставщик получит деньги от стороннего
-        оффшорного агента (Дубай / Гонконг), что нарушает правила KYC.
-        Прямой SWIFT от ОТП Банка гарантирует безопасность контракта.
-      </div>
+    <div class="card">
+      <h2>3. Сопроводительные документы</h2>
+      <p class="hint">Прикрепите скан-копию инвойса для экспресс-анализа валютным контроллером</p>
+      <div class="file-drop-zone" id="dropZone"><span>📂</span> <span style="font-weight:600;">Перетащите файл сюда или нажмите для выбора</span><input type="file" name="attachment" id="fileInput" style="display:none" multiple></div>
+      <div class="file-list" id="fileList">Файлы не выбраны</div>
     </div>
-
-    <button type="submit" class="btn-submit" id="btnSubmit">
-      Отправить инвойс на аудит и скачать КП (PDF)
-    </button>
-    <div class="status-msg" id="statusMsg" role="status" aria-live="polite"></div>
+    <div class="card">
+      <h2>4. Финансовый расчет и аудит издержек</h2>
+      <div class="results">
+        <div class="result-item"><span>Списание в АО «ОТП Банк» <small>(Тело + ВК + Пакет)</small>:</span><span class="value" id="res-otp-total" style="color:var(--otp-green);">0.00 ₽</span></div>
+        <div class="result-item"><span>Списание у Агентов <small>(Тело по ЦБ + Комиссия + 22к фикс)</small>:</span><span class="value" id="res-agent-total" style="color:var(--danger);">0.00 ₽</span></div>
+        <div class="result-item total" id="benefit-row"><span>Разница / Эффективность:</span><span class="value" id="res-benefit">0.00 ₽</span></div>
+      </div>
+      <div class="audit-container">
+        <div class="audit-title">Регуляторный аудит издержек агентской схемы:</div>
+        <div class="audit-item">⚠️ **Налоговый риск потери вычета НДС (20%):** Из-за разрыва цепочки документов ФНС аннулирует вычет. Риск потери: <span id="risk-nds" style="font-weight:700;color:var(--danger);">0 ₽</span>.</div>
+        <div class="audit-item">⚠️ **Риск блокировки комплаенсом (100%):** Оплата от оффшорных агентов нарушает правила KYC зарубежных фабрик. В ОТП — прямой легальный SWIFT от вашего имени.</div>
+      </div>
+      <button type="submit" class="btn-submit" id="submitBtn">Отправить спецификацию на аудит и скачать КП</button>
+      <div class="status-msg" id="statusMsg"></div>
+    </div>
   </form>
 </div>
 
-<!-- Скрытый шаблон для генерации PDF -->
-<div id="pdf-template" aria-hidden="true"></div>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-(function(){
-  "use strict";
-
-  const $ = id => document.getElementById(id);
-  const FIXED_AGENT = 22000;
-  const VAT_RATE    = 0.20;
-
-  const fmtRub = n => new Intl.NumberFormat("ru-RU", {
+<!-- ОФФСКРИН ШАБЛОН ДЛЯ PDF -->
+<div id="pdf-template">
+  <div class="pdf-page">
+    <div class="pdf-header"><h2>АО «ОТП БАНК»</h2><small>Дирекция корпоративного бизнеса • Сравнительный аудит</small></div>
+    <h3>Официальный аналитический расчет для: <span id="pdf-client-name"></span></h3>
+    <p><b>ИНН:</b> <span id="pdf-client-inn"></span> | <b>Контакты:</b> <span id="pdf-client-contact"></span> | <b>Дата:</b> <span id="pdf-date"></span></p>
+    <table class="pdf-table">
+      <tr><th>Инвойс:</th><td><span id="pdf-inv-num"></span> от <span id="pdf-inv-date"></span></td><th>Сумма платежа:</th><td><span id="pdf-amount"></span></td></tr>
+      <tr><th>Курс ЦБ РФ:</th><td><span id="pdf-cb-rate"></span> ₽</td><th>Курс продажи ОТП:</th><td><span id="pdf-otp-rate"></span> ₽</td></tr>
